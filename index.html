@@ -391,36 +391,37 @@
 
     /* Wrong message */
     .wrong-message{
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      bottom:0;
-      width:100%;
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:9999;
-      background: rgba(0,0,0,.85);
+      position:fixed !important;
+      top:0 !important;
+      left:0 !important;
+      right:0 !important;
+      bottom:0 !important;
+      width:100% !important;
+      height:100% !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      z-index:99999 !important;
+      background: rgba(0,0,0,.9) !important;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      pointer-events:none;
+      pointer-events:none !important;
     }
     .wrong-text{
-      font-size: clamp(64px, 15vw, 140px);
-      font-weight:900;
-      color:#ff1744;
+      font-size: clamp(64px, 15vw, 140px) !important;
+      font-weight:900 !important;
+      color:#ff1744 !important;
       text-shadow: 
         0 0 30px rgba(255,23,68,1),
         0 0 60px rgba(255,23,68,.8),
         0 0 90px rgba(255,23,68,.6),
-        0 8px 16px rgba(0,0,0,.6);
-      animation: wrongPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        0 8px 16px rgba(0,0,0,.6) !important;
+      animation: wrongPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
       transform: scale(0);
       opacity: 0;
-      font-family: Poppins, system-ui, sans-serif;
-      letter-spacing: 0.05em;
+      font-family: Poppins, system-ui, sans-serif !important;
+      letter-spacing: 0.05em !important;
+      white-space: nowrap !important;
     }
     @keyframes wrongPop{
       0%{ 
@@ -645,7 +646,9 @@
       rafId: null,
       heartEls: new Set(),
       audioUnlocked: false,
-      soundOn: true
+      soundOn: true,
+      maybePressCount: 0,
+      sessionStarted: false
     };
 
     /* =========================================================
@@ -681,9 +684,18 @@
 
     function resetGame(){
       state.hearts = 0;
+      state.maybePressCount = 0; // Reset Maybe counter for new game session
       updateProgress();
       stopSpawning();
       clearHearts();
+    }
+    
+    function startNewSession(){
+      // Mark that a new session has started (when reveal screen is shown)
+      if (!state.sessionStarted) {
+        state.sessionStarted = true;
+        state.maybePressCount = 0; // Reset counter for this session
+      }
     }
 
     function clearHearts(){
@@ -919,6 +931,9 @@
       fireConfetti(1800);
       showScreen(el.reveal);
 
+      // Start a new session tracking
+      startNewSession();
+
       // Start sparkle behind question
       startSparkles();
       // Make sure "Maybe" starts somewhere not annoying
@@ -1097,6 +1112,10 @@
     }
 
     function dodgeMaybe(){
+      // Track Maybe button press (on desktop when they try to click it)
+      state.maybePressCount++;
+      trackMaybePress();
+      
       // On mobile, don't dodge - will explode instead
       if (isMobileDevice()) return;
       
@@ -1125,20 +1144,142 @@
       maybe.style.transform = `rotate(${rand(-6,6)}deg)`;
       setTimeout(() => (maybe.style.transform = "rotate(0deg)"), 140);
     }
+    
+    /* =========================================================
+       Tracking functions for Maybe button presses
+       ========================================================= */
+    function trackMaybePress(){
+      // Store in localStorage for persistence
+      const data = {
+        timestamp: new Date().toISOString(),
+        maybeCount: state.maybePressCount
+      };
+      localStorage.setItem('valentineGame_maybePress', JSON.stringify(data));
+      
+      // Also log to console for easy viewing
+      console.log(`💔 Maybe button pressed! Total presses this session: ${state.maybePressCount}`);
+    }
+    
+    function trackYesPress(){
+      // Save final stats when Yes is pressed
+      const stats = {
+        timestamp: new Date().toISOString(),
+        maybePressesBeforeYes: state.maybePressCount,
+        sessionId: Date.now()
+      };
+      
+      // Get existing history
+      let history = [];
+      try {
+        const stored = localStorage.getItem('valentineGame_history');
+        if (stored) history = JSON.parse(stored);
+      } catch(e) {
+        history = [];
+      }
+      
+      // Add this session
+      history.push(stats);
+      
+      // Keep last 50 sessions
+      if (history.length > 50) {
+        history = history.slice(-50);
+      }
+      
+      localStorage.setItem('valentineGame_history', JSON.stringify(history));
+      localStorage.setItem('valentineGame_lastSession', JSON.stringify(stats));
+      
+      // Log to console
+      console.log('💖 YES PRESSED! Stats:', stats);
+      console.log('📊 Full history:', history);
+      console.log('💡 To view stats, type: viewValentineStats() in the console');
+      
+      // Make function available globally for easy access
+      window.viewValentineStats = function() {
+        const last = JSON.parse(localStorage.getItem('valentineGame_lastSession') || '{}');
+        const history = JSON.parse(localStorage.getItem('valentineGame_history') || '[]');
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('💖 VALENTINE GAME STATS');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📅 Last Session:');
+        console.log(`   Maybe presses before Yes: ${last.maybePressesBeforeYes || 0}`);
+        console.log(`   Date: ${last.timestamp ? new Date(last.timestamp).toLocaleString() : 'N/A'}`);
+        console.log('');
+        console.log('📊 All Sessions:', history.length);
+        if (history.length > 0) {
+          const totalMaybe = history.reduce((sum, s) => sum + (s.maybePressesBeforeYes || 0), 0);
+          const avgMaybe = (totalMaybe / history.length).toFixed(1);
+          console.log(`   Total Maybe presses across all sessions: ${totalMaybe}`);
+          console.log(`   Average Maybe presses per session: ${avgMaybe}`);
+          console.log('');
+          console.log('📋 Session Details:');
+          history.forEach((s, i) => {
+            console.log(`   Session ${i + 1}: ${s.maybePressesBeforeYes || 0} Maybe presses - ${s.timestamp ? new Date(s.timestamp).toLocaleString() : 'N/A'}`);
+          });
+        }
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        
+        return { last, history, totalSessions: history.length };
+      };
+    }
 
     function showWrongMessage(){
       // Remove any existing wrong message first
       const existing = document.querySelector(".wrong-message");
-      if (existing) existing.remove();
+      if (existing) {
+        existing.remove();
+      }
       
       // Create and show WRONG message
       const wrongDiv = document.createElement("div");
       wrongDiv.className = "wrong-message";
-      wrongDiv.innerHTML = '<div class="wrong-text">WRONG</div>';
+      wrongDiv.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        background: rgba(0,0,0,.9);
+        pointer-events: none;
+      `;
+      
+      const wrongText = document.createElement("div");
+      wrongText.className = "wrong-text";
+      wrongText.textContent = "WRONG";
+      wrongText.style.cssText = `
+        font-size: clamp(64px, 15vw, 140px);
+        font-weight: 900;
+        color: #ff1744;
+        text-shadow: 
+          0 0 30px rgba(255,23,68,1),
+          0 0 60px rgba(255,23,68,.8),
+          0 0 90px rgba(255,23,68,.6),
+          0 8px 16px rgba(0,0,0,.6);
+        font-family: Poppins, system-ui, sans-serif;
+        letter-spacing: 0.05em;
+        transform: scale(0);
+        opacity: 0;
+        animation: wrongPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      `;
+      
+      wrongDiv.appendChild(wrongText);
       document.body.appendChild(wrongDiv);
 
       // Force a reflow to ensure animation starts
-      wrongDiv.offsetHeight;
+      void wrongDiv.offsetHeight;
+      void wrongText.offsetHeight;
+      
+      // Also trigger animation manually as fallback
+      setTimeout(() => {
+        wrongText.style.transform = "scale(1)";
+        wrongText.style.opacity = "1";
+      }, 10);
 
       // Remove after animation
       setTimeout(() => {
@@ -1158,6 +1299,10 @@
         e.stopPropagation();
       }
       
+      // Track Maybe button press
+      state.maybePressCount++;
+      trackMaybePress();
+      
       const maybe = el.btnMaybe;
       
       // Add explosion effect
@@ -1175,6 +1320,40 @@
         maybe.style.transition = "";
         resetMaybePosition();
       }, 500);
+    }
+    
+    function dodgeMaybe(){
+      // Track Maybe button press (on desktop when they try to click it)
+      state.maybePressCount++;
+      trackMaybePress();
+      
+      // On mobile, don't dodge - will explode instead
+      if (isMobileDevice()) return;
+      
+      const area = document.querySelector(".dodge-area");
+      const maybe = el.btnMaybe;
+
+      const pad = 12;
+      const rect = area.getBoundingClientRect();
+      const maxX = rect.width - maybe.offsetWidth - pad;
+      const maxY = rect.height - maybe.offsetHeight - pad;
+
+      // Choose a new random spot, try a few times to avoid tiny moves
+      const currentX = parseFloat(maybe.style.left || "0");
+      const currentY = parseFloat(maybe.style.top || "0");
+
+      let nx = currentX, ny = currentY;
+      for (let i=0;i<6;i++){
+        nx = rand(pad, Math.max(pad, maxX));
+        ny = rand(pad, Math.max(pad, maxY));
+        const dist = Math.hypot(nx - currentX, ny - currentY);
+        if (dist > 60) break;
+      }
+
+      maybe.style.left = nx + "px";
+      maybe.style.top = ny + "px";
+      maybe.style.transform = `rotate(${rand(-6,6)}deg)`;
+      setTimeout(() => (maybe.style.transform = "rotate(0deg)"), 140);
     }
 
     /* =========================================================
@@ -1260,6 +1439,8 @@
       });
 
       el.btnYes.addEventListener("click", () => {
+        // Track Yes press with Maybe count
+        trackYesPress();
         stopSparkles();
         showScreen(el.yes);
       });
