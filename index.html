@@ -246,7 +246,8 @@
 
     .heart{
       position:absolute;
-      bottom:-70px;
+      top: 0;
+      left: 0;
       width: 56px;
       height: 56px;
       display:grid;
@@ -257,9 +258,11 @@
       will-change: transform, opacity;
       user-select:none;
       cursor:pointer;
-      /* hit target */
+      /* hit target - larger on mobile for easier tapping */
       padding: 10px;
       border-radius: 999px;
+      -webkit-tap-highlight-color: rgba(255,95,162,.2);
+      touch-action: manipulation;
     }
 
     .heart:focus-visible{
@@ -386,10 +389,65 @@
       color: rgba(58,45,70,.72);
     }
 
+    /* Wrong message */
+    .wrong-message{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1000;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(8px);
+      pointer-events:none;
+    }
+    .wrong-text{
+      font-size: clamp(48px, 12vw, 120px);
+      font-weight:800;
+      color:#ff1744;
+      text-shadow: 
+        0 0 20px rgba(255,23,68,.8),
+        0 0 40px rgba(255,23,68,.6),
+        0 8px 16px rgba(0,0,0,.4);
+      animation: wrongPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      transform: scale(0);
+    }
+    @keyframes wrongPop{
+      0%{ transform: scale(0) rotate(-10deg); opacity:0; }
+      50%{ transform: scale(1.2) rotate(5deg); opacity:1; }
+      100%{ transform: scale(1) rotate(0deg); opacity:1; }
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 768px){
+      .heart{
+        min-width: 56px;
+        min-height: 56px;
+        padding: 12px; /* Larger touch target */
+      }
+      .stage{
+        min-height: 280px;
+      }
+      .screen{
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        height: 100%;
+        max-height: 100%;
+      }
+      .screen-inner{
+        padding: 18px 16px;
+      }
+      .dodge-area{
+        min-height: 100px;
+      }
+    }
+
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce){
       .bg-anim, .stage::after{ animation:none !important; }
       button{ transition:none !important; }
+      .wrong-text{ animation:none !important; }
     }
   </style>
 </head>
@@ -478,7 +536,7 @@
           </div>
         </div>
 
-        <p class="tiny">P.S. The “Maybe…” button is shy. 😇</p>
+        <p class="tiny" id="maybeHint">P.S. The "Maybe…" button is shy. 😇</p>
       </div>
 
       <!-- YES SCREEN -->
@@ -581,6 +639,11 @@
        ========================================================= */
     const rand = (min, max) => Math.random() * (max - min) + min;
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    function isMobileDevice(){
+      return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+             (window.innerWidth <= 768 && 'ontouchstart' in window);
+    }
 
     function showScreen(which){
       [el.start, el.game, el.reveal, el.yes].forEach(s => s.classList.add("hidden"));
@@ -715,6 +778,13 @@
       const stage = el.stage;
       const rect = stage.getBoundingClientRect();
 
+      // Ensure stage is visible and has valid dimensions
+      if (rect.width === 0 || rect.height === 0) {
+        // Retry after a short delay
+        setTimeout(() => spawnHeart(), 50);
+        return;
+      }
+
       const h = document.createElement("div");
       h.className = "heart";
       h.setAttribute("role", "button");
@@ -725,15 +795,18 @@
       const hearts = ["💗","💖","💘","💞","💝","❤️"];
       h.textContent = hearts[Math.floor(Math.random() * hearts.length)];
 
-      const size = rand(42, 60);
+      // Make hearts bigger and easier to tap on mobile
+      const isMobile = isMobileDevice();
+      const size = rand(isMobile ? 56 : 42, isMobile ? 72 : 60);
       h.style.width = size + "px";
       h.style.height = size + "px";
       h.style.fontSize = Math.floor(size * 0.62) + "px";
 
-      const x = rand(8, rect.width - size - 8);
+      const x = rand(8, Math.max(8, rect.width - size - 8));
       const yStart = rect.height + rand(20, 90); // start below stage
       const drift = rand(-18, 18);
-      const speed = rand(0.55, 1.15); // px per ms-ish (we use delta time)
+      // Slower speed for easier gameplay
+      const speed = rand(0.25, 0.5); // px per ms-ish (reduced from 0.55-1.15)
       const wobble = rand(0.0022, 0.0045);
 
       // store motion data
@@ -786,7 +859,9 @@
       let last = performance.now();
 
       const loop = (now) => {
-        const dt = now - last; // ms
+        let dt = now - last; // ms
+        // Clamp delta time to prevent large jumps (e.g., when tab becomes active)
+        if (dt > 100) dt = 16; // assume ~60fps if too much time passed
         last = now;
 
         const stageRect = el.stage.getBoundingClientRect();
@@ -808,7 +883,12 @@
           }
         }
 
-        if (state.running) state.rafId = requestAnimationFrame(loop);
+        // Continue animation if game is running OR if there are still hearts to animate
+        if (state.running || state.heartEls.size > 0) {
+          state.rafId = requestAnimationFrame(loop);
+        } else {
+          state.rafId = null;
+        }
       };
 
       state.rafId = requestAnimationFrame(loop);
@@ -1003,6 +1083,9 @@
     }
 
     function dodgeMaybe(){
+      // On mobile, don't dodge - will explode instead
+      if (isMobileDevice()) return;
+      
       const area = document.querySelector(".dodge-area");
       const maybe = el.btnMaybe;
 
@@ -1027,6 +1110,43 @@
       maybe.style.top = ny + "px";
       maybe.style.transform = `rotate(${rand(-6,6)}deg)`;
       setTimeout(() => (maybe.style.transform = "rotate(0deg)"), 140);
+    }
+
+    function showWrongMessage(){
+      // Create and show WRONG message
+      const wrongDiv = document.createElement("div");
+      wrongDiv.className = "wrong-message";
+      wrongDiv.innerHTML = '<div class="wrong-text">WRONG</div>';
+      document.body.appendChild(wrongDiv);
+
+      // Remove after animation
+      setTimeout(() => {
+        wrongDiv.style.opacity = "0";
+        wrongDiv.style.transition = "opacity 0.3s ease";
+        setTimeout(() => wrongDiv.remove(), 300);
+      }, 2000);
+    }
+
+    function explodeMaybe(){
+      if (!isMobileDevice()) return;
+      
+      const maybe = el.btnMaybe;
+      
+      // Add explosion effect
+      maybe.style.transform = "scale(2) rotate(360deg)";
+      maybe.style.opacity = "0";
+      maybe.style.transition = "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)";
+      
+      // Show WRONG message
+      showWrongMessage();
+      
+      // Reset button after a delay
+      setTimeout(() => {
+        maybe.style.transform = "";
+        maybe.style.opacity = "";
+        maybe.style.transition = "";
+        resetMaybePosition();
+      }, 500);
     }
 
     /* =========================================================
@@ -1068,6 +1188,12 @@
       setTexts();
       buildGallery();
       setSoundUI();
+      
+      // Update hint text on mobile
+      const maybeHint = document.getElementById("maybeHint");
+      if (maybeHint && isMobileDevice()) {
+        maybeHint.textContent = "P.S. Don't press the \"Maybe…\" button! 😈";
+      }
 
       // Keep sparkle canvas sized if orientation changes (when on reveal screen)
       window.addEventListener("resize", () => {
@@ -1110,16 +1236,25 @@
         showScreen(el.yes);
       });
 
-      // "Maybe" dodges on hover and on pointer down
-      el.btnMaybe.addEventListener("mouseenter", dodgeMaybe);
-      el.btnMaybe.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        dodgeMaybe();
-      }, {passive:false});
-      el.btnMaybe.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        dodgeMaybe();
-      }, {passive:false});
+      // "Maybe" button behavior: dodge on desktop, explode on mobile
+      if (isMobileDevice()) {
+        // On mobile: explode and show WRONG
+        el.btnMaybe.addEventListener("click", (e) => {
+          e.preventDefault();
+          explodeMaybe();
+        });
+        el.btnMaybe.addEventListener("touchstart", (e) => {
+          e.preventDefault();
+          explodeMaybe();
+        }, {passive:false});
+      } else {
+        // On desktop: dodge on hover and pointer down
+        el.btnMaybe.addEventListener("mouseenter", dodgeMaybe);
+        el.btnMaybe.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          dodgeMaybe();
+        }, {passive:false});
+      }
 
       el.btnReplay.addEventListener("click", () => {
         stopSparkles();
