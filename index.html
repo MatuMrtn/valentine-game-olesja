@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#F989B3" />
+  <title>Valentine Mini Game 💖</title>
+
+  <!-- Google Font (online). Falls back gracefully offline. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&family=Pacifico&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =========================================================
+       Valentine's Mini Game — Single File (HTML+CSS+JS)
+       Works offline (font will fall back); no external libraries.
+       ========================================================= */
+
+    :root{
+      --bg1:#FFF3F6;
+      --bg2:#FFF8EE;
+      --card:#ffffffcc;
+      --cardSolid:#ffffff;
+      --ink:#2A2430;
+      --muted:#6a5f73;
+      --pink:#FF5FA2;
+      --pink2:#FF8BC7;
+      --cream:#FFE9D2;
+      --shadow: 0 16px 40px rgba(36, 20, 55, .12);
+      --shadow2: 0 10px 20px rgba(36, 20, 55, .10);
+      --radius: 22px;
+      --safeTop: env(safe-area-inset-top, 0px);
+      --safeBottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 800px at 20% 10%, #ffe0ee 0%, transparent 60%),
+        radial-gradient(900px 700px at 90% 20%, #ffe7cf 0%, transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      overflow:hidden; /* game uses absolute layers */
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* Soft animated gradient shimmer */
+    .bg-anim{
+      position:fixed; inset:-20%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,95,162,.18), transparent 45%),
+                  radial-gradient(circle at 70% 40%, rgba(255,199,105,.16), transparent 50%),
+                  radial-gradient(circle at 55% 75%, rgba(136,96,255,.10), transparent 55%);
+      filter: blur(18px);
+      animation: drift 14s ease-in-out infinite alternate;
+      pointer-events:none;
+      z-index:0;
+    }
+    @keyframes drift{
+      from{ transform: translate3d(-2%, -1%, 0) scale(1.02); }
+      to{ transform: translate3d(2%, 1.5%, 0) scale(1.05); }
+    }
+
+    /* App container */
+    .app{
+      position:relative;
+      z-index:1;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: calc(16px + var(--safeTop)) 16px calc(16px + var(--safeBottom));
+    }
+
+    .screen{
+      width:min(520px, 100%);
+      max-height: 100%;
+      overflow:hidden;
+      border-radius: var(--radius);
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      position:relative;
+    }
+
+    .screen-inner{
+      padding: 22px 18px 18px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .title{
+      font-family: Pacifico, "Brush Script MT", "Segoe Script", cursive;
+      font-size: clamp(28px, 4.6vw, 38px);
+      line-height: 1.05;
+      margin: 0;
+      letter-spacing: .2px;
+      color: #2b1f2f;
+      text-shadow: 0 6px 16px rgba(255, 95, 162, .18);
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .75);
+      box-shadow: var(--shadow2);
+      border: 1px solid rgba(255,255,255,.7);
+      font-weight:600;
+      color:#3a2d46;
+      user-select:none;
+    }
+
+    .chip small{ font-weight:600; color: var(--muted); }
+    .chip .dot{
+      width:10px;height:10px;border-radius:999px;
+      background: radial-gradient(circle at 30% 30%, #fff 0%, #ffd3e6 35%, var(--pink) 100%);
+      box-shadow: 0 0 0 3px rgba(255,95,162,.14);
+    }
+
+    .card{
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(255,255,255,.7);
+      border-radius: var(--radius);
+      padding: 16px 14px;
+      box-shadow: var(--shadow2);
+    }
+
+    .lead{
+      margin:0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .btn-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-start;
+    }
+
+    button, .linkbtn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      font-family: inherit;
+      font-weight: 800;
+      letter-spacing: .2px;
+      border-radius: 16px;
+      padding: 12px 14px;
+      min-height: 44px;
+      transition: transform .12s ease, box-shadow .12s ease, filter .12s ease, background .12s ease;
+      user-select:none;
+      touch-action: manipulation;
+    }
+
+    .primary{
+      background: linear-gradient(135deg, var(--pink), var(--pink2));
+      color: white;
+      box-shadow: 0 14px 30px rgba(255,95,162,.28);
+    }
+    .primary:hover{ filter: brightness(1.02); }
+    .primary:active{ transform: translateY(1px) scale(.99); }
+
+    .secondary{
+      background: rgba(255,255,255,.92);
+      color:#2b1f2f;
+      border: 1px solid rgba(255, 95, 162, .25);
+      box-shadow: 0 12px 24px rgba(36, 20, 55, .10);
+      font-weight: 800;
+    }
+    .secondary:hover{ transform: translateY(-1px); }
+    .secondary:active{ transform: translateY(1px) scale(.99); }
+
+    .ghost{
+      background: transparent;
+      color:#3a2d46;
+      border: 1px dashed rgba(58,45,70,.25);
+      font-weight:700;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .hint{
+      font-size: 13px;
+      color: var(--muted);
+      margin:0;
+    }
+
+    /* Game stage */
+    .stage{
+      position:relative;
+      height: min(62vh, 520px);
+      min-height: 320px;
+      border-radius: var(--radius);
+      overflow:hidden;
+      background:
+        radial-gradient(800px 420px at 50% 120%, rgba(255,95,162,.22), transparent 60%),
+        radial-gradient(900px 460px at 10% 100%, rgba(255,195,122,.20), transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.18));
+      border: 1px solid rgba(255,255,255,.6);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+    }
+
+    .stage::after{
+      /* subtle sparkles */
+      content:"";
+      position:absolute; inset:0;
+      background-image:
+        radial-gradient(circle at 18% 20%, rgba(255,255,255,.85) 0 1px, transparent 2px),
+        radial-gradient(circle at 78% 30%, rgba(255,255,255,.65) 0 1px, transparent 2px),
+        radial-gradient(circle at 35% 55%, rgba(255,255,255,.75) 0 1px, transparent 2px),
+        radial-gradient(circle at 65% 70%, rgba(255,255,255,.60) 0 1px, transparent 2px),
+        radial-gradient(circle at 52% 40%, rgba(255,255,255,.55) 0 1px, transparent 2px);
+      opacity:.55;
+      animation: sparkle 3.8s ease-in-out infinite alternate;
+      pointer-events:none;
+    }
+    @keyframes sparkle{
+      from{ transform: translateY(0); opacity:.48; }
+      to{ transform: translateY(-6px); opacity:.65; }
+    }
+
+    .heart{
+      position:absolute;
+      bottom:-70px;
+      width: 56px;
+      height: 56px;
+      display:grid;
+      place-items:center;
+      font-size: 34px;
+      filter: drop-shadow(0 10px 14px rgba(255, 95, 162, .22));
+      transform: translateZ(0);
+      will-change: transform, opacity;
+      user-select:none;
+      cursor:pointer;
+      /* hit target */
+      padding: 10px;
+      border-radius: 999px;
+    }
+
+    .heart:focus-visible{
+      outline: 3px solid rgba(255,95,162,.35);
+      outline-offset: 2px;
+    }
+
+    .pop{
+      animation: pop .24s ease-out forwards;
+    }
+    @keyframes pop{
+      0%{ transform: scale(1); opacity: 1; }
+      100%{ transform: scale(1.8); opacity: 0; }
+    }
+
+    /* Reveal sparkle behind question */
+    .sparkle-wrap{
+      position:relative;
+      overflow:hidden;
+    }
+    .sparkle-canvas{
+      position:absolute; inset:0;
+      pointer-events:none;
+      opacity:.85;
+    }
+
+    /* Confetti canvas */
+    canvas#confetti{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index: 10;
+      display:none;
+    }
+
+    /* Gallery */
+    .gallery{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+    }
+    .gallery img{
+      width:100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 16px;
+      box-shadow: 0 12px 20px rgba(36,20,55,.10);
+      border: 1px solid rgba(255,255,255,.7);
+      background: rgba(255,255,255,.7);
+    }
+
+    /* Maybe button dodge area */
+    .dodge-area{
+      position:relative;
+      min-height: 92px; /* room for moving button */
+      border-radius: 18px;
+      background: rgba(255,255,255,.55);
+      border: 1px solid rgba(255,255,255,.65);
+      overflow:hidden;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+    }
+    .dodge-area .btn-row{
+      position:absolute;
+      inset: 0;
+      padding: 14px;
+      align-items:flex-start;
+      justify-content:flex-start;
+    }
+    .dodge{
+      position:absolute;
+      left: 150px;
+      top: 14px;
+      transition: transform .12s ease;
+      white-space:nowrap;
+    }
+
+    /* Toggle */
+    .toggle{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.75);
+      border: 1px solid rgba(255,255,255,.7);
+      box-shadow: var(--shadow2);
+      font-weight:700;
+      color:#3a2d46;
+      cursor:pointer;
+      user-select:none;
+    }
+    .toggle input{ display:none; }
+    .toggle .pill{
+      width:44px;height:24px;border-radius:999px;
+      background: rgba(255,95,162,.22);
+      position:relative;
+      box-shadow: inset 0 0 0 1px rgba(255,95,162,.15);
+    }
+    .toggle .knob{
+      position:absolute; top:3px; left:3px;
+      width:18px;height:18px;border-radius:999px;
+      background: linear-gradient(135deg, #fff, #ffe9f2);
+      box-shadow: 0 6px 12px rgba(36,20,55,.18);
+      transition: transform .18s ease;
+    }
+    .toggle input:checked + .pill .knob{ transform: translateX(20px); }
+
+    /* Hide screens */
+    .hidden{ display:none !important; }
+
+    /* Accessibility helper */
+    .sr-only{
+      position:absolute!important;
+      height:1px; width:1px;
+      overflow:hidden;
+      clip: rect(1px,1px,1px,1px);
+      white-space: nowrap;
+    }
+
+    /* Footer / tiny */
+    .tiny{
+      margin:0;
+      font-size:12px;
+      color: rgba(58,45,70,.72);
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .bg-anim, .stage::after{ animation:none !important; }
+      button{ transition:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-anim" aria-hidden="true"></div>
+  <canvas id="confetti"></canvas>
+
+  <main class="app" aria-live="polite">
+    <section class="screen" role="application" aria-label="Valentine mini game">
+      <!-- START SCREEN -->
+      <div id="screenStart" class="screen-inner">
+        <div class="brand">
+          <h1 class="title" id="startTitle">A Tiny Valentine Game 💝</h1>
+          <div class="chip" aria-label="Goal">
+            <span class="dot" aria-hidden="true"></span>
+            <span><small>Goal:</small> <span id="goalText">Catch 5 hearts</span></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="lead" id="introText">
+            Hi Olesja ❤️ I made you a tiny game… catch 5 hearts to unlock a question.
+          </p>
+          <p class="hint" style="margin-top:10px;">
+            Works offline. Tap hearts on mobile, click on desktop.
+          </p>
+        </div>
+
+        <div class="btn-row">
+          <button class="primary" id="btnStart" aria-label="Start the game">Start 💖</button>
+          <label class="toggle" aria-label="Toggle sound">
+            <input id="soundToggle" type="checkbox" checked />
+            <span class="pill" aria-hidden="true"><span class="knob"></span></span>
+            <span id="soundLabel">Sound: On</span>
+          </label>
+        </div>
+
+        <p class="tiny">Tip: If sound doesn’t play, tap once anywhere and try again (mobile browser rule).</p>
+      </div>
+
+      <!-- GAME SCREEN -->
+      <div id="screenGame" class="screen-inner hidden">
+        <div class="topbar">
+          <div class="chip" aria-label="Progress">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="progressText">Hearts: 0/5</span>
+          </div>
+          <p class="hint" id="gameHint">Tap the hearts! ✨</p>
+        </div>
+
+        <div class="stage" id="stage" aria-label="Game area">
+          <span class="sr-only" id="stageHelp">Hearts float from the bottom. Tap or click them to collect.</span>
+        </div>
+
+        <div class="btn-row">
+          <button class="ghost" id="btnBack" aria-label="Go back to start screen">Back</button>
+          <button class="secondary" id="btnRestart" aria-label="Restart game">Restart</button>
+        </div>
+      </div>
+
+      <!-- REVEAL SCREEN -->
+      <div id="screenReveal" class="screen-inner hidden">
+        <div class="brand">
+          <h2 class="title" style="margin:0;">Surprise unlocked! 🎉</h2>
+          <div class="chip" aria-label="Progress complete">
+            <span class="dot" aria-hidden="true"></span>
+            <span>Hearts: <strong id="doneText">5/5</strong></span>
+          </div>
+        </div>
+
+        <div class="card sparkle-wrap">
+          <canvas class="sparkle-canvas" id="sparkle"></canvas>
+          <p class="lead" style="margin:0 0 10px;">
+            Okay okay… I’ve been saving this for you 🥹
+          </p>
+          <h3 style="margin:0; font-size: 22px; line-height:1.25;" id="questionText">
+            Will you be my Valentine, Olesja?
+          </h3>
+        </div>
+
+        <div class="dodge-area" aria-label="Answer buttons area">
+          <div class="btn-row" id="answerRow">
+            <button class="primary" id="btnYes" aria-label="Yes">YES!!! 💖</button>
+            <button class="secondary dodge" id="btnMaybe" aria-label="Maybe">Maybe… 🙈</button>
+          </div>
+        </div>
+
+        <p class="tiny">P.S. The “Maybe…” button is shy. 😇</p>
+      </div>
+
+      <!-- YES SCREEN -->
+      <div id="screenYes" class="screen-inner hidden">
+        <div class="brand">
+          <h2 class="title" style="margin:0;">YAY!! 💘</h2>
+          <div class="chip" aria-label="Success">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="yesChip">Olesja said yes!</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="lead" id="yesLine" style="margin:0;">
+            I can’t wait to make more memories with you.
+          </p>
+        </div>
+
+        <div class="card" id="galleryCard">
+          <p class="hint" style="margin:0 0 10px;">Little memories gallery 📸</p>
+          <div class="gallery" id="gallery"></div>
+          <p class="tiny" style="margin-top:10px;">
+            (To use photos offline, put image files next to this HTML and update the <code>photos</code> array.)
+          </p>
+        </div>
+
+        <div class="btn-row">
+          <button class="primary" id="btnReplay" aria-label="Replay the game">Replay 🔁</button>
+          <button class="secondary" id="btnShare" aria-label="Copy a sweet message">Copy a sweet message 💌</button>
+        </div>
+
+        <p class="tiny" id="copyHint" aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* =========================================================
+       Customization (edit these!)
+       ========================================================= */
+    const herName = "Olesja";
+    const heartsToWin = 5;
+    const photos = ["photo1.jpg","photo2.jpg","photo3.jpg"]; // optional
+    // const photos = []; // uncomment to hide gallery automatically
+
+    /* Optional fine-tuning */
+    const spawnEveryMinMs = 700;
+    const spawnEveryMaxMs = 1200;
+
+    /* =========================================================
+       State + Elements
+       ========================================================= */
+    const el = {
+      start: document.getElementById("screenStart"),
+      game: document.getElementById("screenGame"),
+      reveal: document.getElementById("screenReveal"),
+      yes: document.getElementById("screenYes"),
+
+      introText: document.getElementById("introText"),
+      goalText: document.getElementById("goalText"),
+      progressText: document.getElementById("progressText"),
+      doneText: document.getElementById("doneText"),
+      questionText: document.getElementById("questionText"),
+      yesChip: document.getElementById("yesChip"),
+      yesLine: document.getElementById("yesLine"),
+
+      stage: document.getElementById("stage"),
+
+      btnStart: document.getElementById("btnStart"),
+      btnBack: document.getElementById("btnBack"),
+      btnRestart: document.getElementById("btnRestart"),
+      btnYes: document.getElementById("btnYes"),
+      btnMaybe: document.getElementById("btnMaybe"),
+      btnReplay: document.getElementById("btnReplay"),
+      btnShare: document.getElementById("btnShare"),
+
+      soundToggle: document.getElementById("soundToggle"),
+      soundLabel: document.getElementById("soundLabel"),
+
+      confetti: document.getElementById("confetti"),
+      sparkle: document.getElementById("sparkle"),
+
+      galleryCard: document.getElementById("galleryCard"),
+      gallery: document.getElementById("gallery"),
+      copyHint: document.getElementById("copyHint")
+    };
+
+    const state = {
+      hearts: 0,
+      running: false,
+      spawnTimer: null,
+      rafId: null,
+      heartEls: new Set(),
+      audioUnlocked: false,
+      soundOn: true
+    };
+
+    /* =========================================================
+       Helpers
+       ========================================================= */
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    function showScreen(which){
+      [el.start, el.game, el.reveal, el.yes].forEach(s => s.classList.add("hidden"));
+      which.classList.remove("hidden");
+    }
+
+    function setTexts(){
+      el.introText.textContent =
+        `Hi ${herName} ❤️ I made you a tiny game… catch ${heartsToWin} hearts to unlock a question.`;
+      el.goalText.textContent = `Catch ${heartsToWin} hearts`;
+      el.progressText.textContent = `Hearts: 0/${heartsToWin}`;
+      el.doneText.textContent = `${heartsToWin}/${heartsToWin}`;
+      el.questionText.textContent = `Will you be my Valentine, ${herName}?`;
+      el.yesChip.textContent = `${herName} said yes!`;
+      el.yesLine.textContent = `I can’t wait to make more memories with you.`;
+    }
+
+    function updateProgress(){
+      el.progressText.textContent = `Hearts: ${state.hearts}/${heartsToWin}`;
+    }
+
+    function resetGame(){
+      state.hearts = 0;
+      updateProgress();
+      stopSpawning();
+      clearHearts();
+    }
+
+    function clearHearts(){
+      state.heartEls.forEach(h => h.remove());
+      state.heartEls.clear();
+    }
+
+    /* =========================================================
+       Sound (optional) — tiny synthesized pop with WebAudio
+       ========================================================= */
+    let audioCtx = null;
+
+    function ensureAudio(){
+      if (audioCtx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = new AC();
+    }
+
+    async function unlockAudio(){
+      try{
+        ensureAudio();
+        if (!audioCtx) return;
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+        state.audioUnlocked = true;
+      }catch(e){
+        // ignore
+      }
+    }
+
+    function popSound(){
+      if (!state.soundOn) return;
+      if (!audioCtx || !state.audioUnlocked) return;
+
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.08);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
+
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.11);
+    }
+
+    function winChime(){
+      if (!state.soundOn) return;
+      if (!audioCtx || !state.audioUnlocked) return;
+
+      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+      const start = audioCtx.currentTime;
+      notes.forEach((f, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(f, start + i * 0.08);
+        gain.gain.setValueAtTime(0.0001, start + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.22, start + i * 0.08 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + i * 0.08 + 0.18);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(start + i * 0.08);
+        osc.stop(start + i * 0.08 + 0.20);
+      });
+    }
+
+    function setSoundUI(){
+      el.soundLabel.textContent = `Sound: ${state.soundOn ? "On" : "Off"}`;
+    }
+
+    /* =========================================================
+       Heart spawning + animation
+       ========================================================= */
+    function scheduleNextSpawn(){
+      if (!state.running) return;
+      const delay = Math.floor(rand(spawnEveryMinMs, spawnEveryMaxMs));
+      state.spawnTimer = setTimeout(() => {
+        spawnHeart();
+        scheduleNextSpawn();
+      }, delay);
+    }
+
+    function stopSpawning(){
+      state.running = false;
+      if (state.spawnTimer) clearTimeout(state.spawnTimer);
+      state.spawnTimer = null;
+      if (state.rafId) cancelAnimationFrame(state.rafId);
+      state.rafId = null;
+    }
+
+    function startGame(){
+      resetGame();
+      showScreen(el.game);
+
+      state.running = true;
+      scheduleNextSpawn();
+      animateHearts();
+    }
+
+    function spawnHeart(){
+      const stage = el.stage;
+      const rect = stage.getBoundingClientRect();
+
+      const h = document.createElement("div");
+      h.className = "heart";
+      h.setAttribute("role", "button");
+      h.setAttribute("tabindex", "0");
+      h.setAttribute("aria-label", "Heart");
+
+      // Slightly varied heart look
+      const hearts = ["💗","💖","💘","💞","💝","❤️"];
+      h.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+
+      const size = rand(42, 60);
+      h.style.width = size + "px";
+      h.style.height = size + "px";
+      h.style.fontSize = Math.floor(size * 0.62) + "px";
+
+      const x = rand(8, rect.width - size - 8);
+      const yStart = rect.height + rand(20, 90); // start below stage
+      const drift = rand(-18, 18);
+      const speed = rand(0.55, 1.15); // px per ms-ish (we use delta time)
+      const wobble = rand(0.0022, 0.0045);
+
+      // store motion data
+      h._x = x;
+      h._y = yStart;
+      h._drift = drift;
+      h._speed = speed;
+      h._wobble = wobble;
+      h._t = rand(0, Math.PI * 2);
+
+      h.style.transform = `translate(${h._x}px, ${h._y}px)`;
+
+      // Collect on pointer/touch/click
+      const collect = (ev) => {
+        ev.preventDefault();
+        if (!state.running) return;
+        if (!stage.contains(h)) return; // already removed
+        collectHeart(h);
+      };
+
+      h.addEventListener("pointerdown", collect, {passive:false});
+      h.addEventListener("click", collect);
+      h.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") collect(ev);
+      });
+
+      stage.appendChild(h);
+      state.heartEls.add(h);
+    }
+
+    function collectHeart(h){
+      state.hearts += 1;
+      updateProgress();
+
+      popSound();
+      h.classList.add("pop");
+
+      // Remove after pop
+      setTimeout(() => {
+        if (h && h.parentNode) h.remove();
+        state.heartEls.delete(h);
+      }, 220);
+
+      if (state.hearts >= heartsToWin){
+        win();
+      }
+    }
+
+    function animateHearts(){
+      let last = performance.now();
+
+      const loop = (now) => {
+        const dt = now - last; // ms
+        last = now;
+
+        const stageRect = el.stage.getBoundingClientRect();
+
+        for (const h of state.heartEls){
+          if (!h || !h.parentNode) continue;
+
+          h._t += dt * h._wobble;
+          const wob = Math.sin(h._t) * (10 + Math.abs(h._drift));
+          h._y -= dt * h._speed * 0.9; // upward
+          const x = h._x + (h._drift * 0.15) + wob;
+
+          h.style.transform = `translate(${x}px, ${h._y}px)`;
+
+          // Remove if gone
+          if (h._y < -90){
+            h.remove();
+            state.heartEls.delete(h);
+          }
+        }
+
+        if (state.running) state.rafId = requestAnimationFrame(loop);
+      };
+
+      state.rafId = requestAnimationFrame(loop);
+    }
+
+    /* =========================================================
+       Win flow: confetti + reveal
+       ========================================================= */
+    function win(){
+      stopSpawning();
+      clearHearts();
+
+      winChime();
+      fireConfetti(1800);
+      showScreen(el.reveal);
+
+      // Start sparkle behind question
+      startSparkles();
+      // Make sure "Maybe" starts somewhere not annoying
+      resetMaybePosition();
+    }
+
+    /* =========================================================
+       Confetti (Canvas) — lightweight, no libs
+       ========================================================= */
+    function sizeCanvas(c){
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      c.width = Math.floor(innerWidth * dpr);
+      c.height = Math.floor(innerHeight * dpr);
+      c.style.width = innerWidth + "px";
+      c.style.height = innerHeight + "px";
+      return dpr;
+    }
+
+    function fireConfetti(durationMs=1400){
+      const c = el.confetti;
+      const ctx = c.getContext("2d");
+      const dpr = sizeCanvas(c);
+      c.style.display = "block";
+
+      const colors = ["#FF5FA2", "#FF8BC7", "#FFD37A", "#8B7CFF", "#FFFFFF"];
+      const pieces = [];
+      const count = 140;
+
+      for (let i=0;i<count;i++){
+        pieces.push({
+          x: Math.random() * c.width,
+          y: -Math.random() * c.height * 0.2,
+          vx: (Math.random() - 0.5) * 6 * dpr,
+          vy: (Math.random() * 6 + 6) * dpr,
+          r: (Math.random() * 6 + 4) * dpr,
+          rot: Math.random() * Math.PI,
+          vr: (Math.random() - 0.5) * 0.18,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          shape: Math.random() < 0.25 ? "heart" : "rect"
+        });
+      }
+
+      const start = performance.now();
+
+      function drawHeart(x,y,s,rot,color){
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.rotate(rot);
+        ctx.scale(s/14, s/14);
+        ctx.beginPath();
+        // a simple heart curve
+        ctx.moveTo(0, 5);
+        ctx.bezierCurveTo(0, -3, -10, -3, -10, 5);
+        ctx.bezierCurveTo(-10, 12, 0, 14, 0, 18);
+        ctx.bezierCurveTo(0, 14, 10, 12, 10, 5);
+        ctx.bezierCurveTo(10, -3, 0, -3, 0, 5);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function tick(now){
+        const t = now - start;
+        ctx.clearRect(0,0,c.width,c.height);
+
+        // Gentle fade near end
+        const fade = clamp(1 - (t - durationMs) / 300, 0, 1);
+        ctx.globalAlpha = fade;
+
+        for (const p of pieces){
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy *= 0.992;
+          p.vy += 0.08 * dpr;
+          p.rot += p.vr;
+
+          if (p.shape === "rect"){
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.r, -p.r*0.6, p.r*2, p.r*1.2);
+            ctx.restore();
+          }else{
+            drawHeart(p.x, p.y, p.r*1.6, p.rot, p.color);
+          }
+        }
+
+        ctx.globalAlpha = 1;
+
+        if (t < durationMs + 300){
+          requestAnimationFrame(tick);
+        } else {
+          c.style.display = "none";
+        }
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    /* =========================================================
+       Sparkles behind the final question (Canvas)
+       ========================================================= */
+    let sparkleRAF = null;
+    let sparkles = [];
+
+    function startSparkles(){
+      stopSparkles();
+      const c = el.sparkle;
+      const ctx = c.getContext("2d");
+      const box = c.parentElement.getBoundingClientRect();
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      c.width = Math.floor(box.width * dpr);
+      c.height = Math.floor(box.height * dpr);
+      c.style.width = box.width + "px";
+      c.style.height = box.height + "px";
+
+      sparkles = Array.from({length: 28}, () => ({
+        x: Math.random() * c.width,
+        y: Math.random() * c.height,
+        r: rand(1.2, 3.2) * dpr,
+        a: rand(0.18, 0.8),
+        da: rand(0.004, 0.012),
+        dy: rand(0.08, 0.22) * dpr
+      }));
+
+      function tick(){
+        ctx.clearRect(0,0,c.width,c.height);
+        for (const s of sparkles){
+          s.a += s.da;
+          if (s.a > 0.95 || s.a < 0.12) s.da *= -1;
+          s.y -= s.dy;
+          if (s.y < -10) { s.y = c.height + 10; s.x = Math.random()*c.width; }
+
+          // star-ish sparkle
+          ctx.save();
+          ctx.globalAlpha = s.a;
+          ctx.translate(s.x, s.y);
+          ctx.fillStyle = "rgba(255,255,255,1)";
+          ctx.beginPath();
+          ctx.arc(0,0,s.r,0,Math.PI*2);
+          ctx.fill();
+          ctx.restore();
+        }
+        sparkleRAF = requestAnimationFrame(tick);
+      }
+
+      sparkleRAF = requestAnimationFrame(tick);
+    }
+
+    function stopSparkles(){
+      if (sparkleRAF) cancelAnimationFrame(sparkleRAF);
+      sparkleRAF = null;
+      const c = el.sparkle;
+      const ctx = c.getContext("2d");
+      ctx.clearRect(0,0,c.width,c.height);
+    }
+
+    /* =========================================================
+       "Maybe" button dodge logic (hover + tap)
+       ========================================================= */
+    function resetMaybePosition(){
+      const area = document.querySelector(".dodge-area");
+      const yesBtn = el.btnYes;
+      const maybe = el.btnMaybe;
+
+      // Default: keep it to the right of YES if possible
+      const pad = 14;
+      const areaRect = area.getBoundingClientRect();
+      const yesRect = yesBtn.getBoundingClientRect();
+
+      const left = clamp((yesRect.left - areaRect.left) + yesRect.width + 12, pad, areaRect.width - maybe.offsetWidth - pad);
+      maybe.style.left = left + "px";
+      maybe.style.top = pad + "px";
+    }
+
+    function dodgeMaybe(){
+      const area = document.querySelector(".dodge-area");
+      const maybe = el.btnMaybe;
+
+      const pad = 12;
+      const rect = area.getBoundingClientRect();
+      const maxX = rect.width - maybe.offsetWidth - pad;
+      const maxY = rect.height - maybe.offsetHeight - pad;
+
+      // Choose a new random spot, try a few times to avoid tiny moves
+      const currentX = parseFloat(maybe.style.left || "0");
+      const currentY = parseFloat(maybe.style.top || "0");
+
+      let nx = currentX, ny = currentY;
+      for (let i=0;i<6;i++){
+        nx = rand(pad, Math.max(pad, maxX));
+        ny = rand(pad, Math.max(pad, maxY));
+        const dist = Math.hypot(nx - currentX, ny - currentY);
+        if (dist > 60) break;
+      }
+
+      maybe.style.left = nx + "px";
+      maybe.style.top = ny + "px";
+      maybe.style.transform = `rotate(${rand(-6,6)}deg)`;
+      setTimeout(() => (maybe.style.transform = "rotate(0deg)"), 140);
+    }
+
+    /* =========================================================
+       Gallery
+       ========================================================= */
+    function buildGallery(){
+      if (!Array.isArray(photos) || photos.length === 0){
+        el.galleryCard.classList.add("hidden");
+        el.gallery.innerHTML = "";
+        return;
+      }
+      el.galleryCard.classList.remove("hidden");
+      el.gallery.innerHTML = photos.map((src, i) => {
+        const safe = String(src).replace(/"/g, "&quot;");
+        return `<img src="${safe}" alt="Memory photo ${i+1}" loading="lazy" />`;
+      }).join("");
+    }
+
+    /* =========================================================
+       Copy sweet message
+       ========================================================= */
+    async function copySweet(){
+      const msg = `Hey ${herName} 💖\nI made this little heart game for you… and I just wanted to say:\nYou make my days softer, brighter, and happier. 💘`;
+      try{
+        await navigator.clipboard.writeText(msg);
+        el.copyHint.textContent = "Copied! Paste it anywhere 💌";
+      }catch(e){
+        // Fallback: prompt
+        window.prompt("Copy this message:", msg);
+        el.copyHint.textContent = "If it didn’t auto-copy, you can copy from the prompt 💌";
+      }
+      setTimeout(() => (el.copyHint.textContent = ""), 3500);
+    }
+
+    /* =========================================================
+       Events
+       ========================================================= */
+    function init(){
+      setTexts();
+      buildGallery();
+      setSoundUI();
+
+      // Keep sparkle canvas sized if orientation changes (when on reveal screen)
+      window.addEventListener("resize", () => {
+        if (!el.reveal.classList.contains("hidden")) startSparkles();
+      });
+
+      // Audio unlock: first interaction anywhere
+      const unlockOnce = async () => {
+        await unlockAudio();
+        document.removeEventListener("pointerdown", unlockOnce);
+        document.removeEventListener("touchstart", unlockOnce);
+      };
+      document.addEventListener("pointerdown", unlockOnce, {passive:true});
+      document.addEventListener("touchstart", unlockOnce, {passive:true});
+
+      el.soundToggle.addEventListener("change", async () => {
+        state.soundOn = el.soundToggle.checked;
+        setSoundUI();
+        if (state.soundOn) await unlockAudio();
+      });
+
+      el.btnStart.addEventListener("click", async () => {
+        await unlockAudio();
+        startGame();
+      });
+
+      el.btnBack.addEventListener("click", () => {
+        stopSparkles();
+        stopSpawning();
+        clearHearts();
+        showScreen(el.start);
+      });
+
+      el.btnRestart.addEventListener("click", () => {
+        startGame();
+      });
+
+      el.btnYes.addEventListener("click", () => {
+        stopSparkles();
+        showScreen(el.yes);
+      });
+
+      // "Maybe" dodges on hover and on pointer down
+      el.btnMaybe.addEventListener("mouseenter", dodgeMaybe);
+      el.btnMaybe.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        dodgeMaybe();
+      }, {passive:false});
+      el.btnMaybe.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        dodgeMaybe();
+      }, {passive:false});
+
+      el.btnReplay.addEventListener("click", () => {
+        stopSparkles();
+        startGame();
+      });
+
+      el.btnShare.addEventListener("click", copySweet);
+
+      // Keyboard accessibility: allow Esc to go back from game/reveal/yes
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape"){
+          stopSparkles();
+          stopSpawning();
+          clearHearts();
+          showScreen(el.start);
+        }
+      });
+
+      // Prevent double-tap zoom on iOS in game area
+      let lastTouchEnd = 0;
+      document.addEventListener("touchend", (event) => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) event.preventDefault();
+        lastTouchEnd = now;
+      }, {passive:false});
+
+      // Start screen initial
+      showScreen(el.start);
+    }
+
+    /* =========================================================
+       Boot
+       ========================================================= */
+    init();
+  </script>
+</body>
+</html>
