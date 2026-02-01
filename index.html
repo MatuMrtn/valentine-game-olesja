@@ -10,6 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&family=Pacifico&display=swap" rel="stylesheet" />
+  
+  <!-- No external email library needed - using webhook approach -->
 
   <style>
     /* =========================================================
@@ -589,6 +591,18 @@
     const herName = "Olesja";
     const petNames = ["my pumpkin", "my princess", "my bambi"];
     const heartsToWin = 5;
+    
+    /* =========================================================
+       Email Notification Configuration
+       
+       Using Web3Forms - a simple service that sends emails with just an access key
+       Get your free access key at: https://web3forms.com/
+       ========================================================= */
+    const emailConfig = {
+      enabled: true, // Set to true to enable email notifications
+      accessKey: "d52e2293-27a4-4f46-8295-f4a851b12e96", // Web3Forms access key
+      yourEmail: "martinkarlmatthias@gmail.com" // Your email address to receive notifications
+    };
     
     // Helper to get a random pet name
     function getPetName() {
@@ -1193,6 +1207,11 @@
       console.log('📊 Full history:', history);
       console.log('💡 To view stats, type: viewValentineStats() in the console');
       
+      // Send email notification if enabled
+      if (emailConfig.enabled) {
+        sendEmailNotification(stats);
+      }
+      
       // Make function available globally for easy access
       window.viewValentineStats = function() {
         const last = JSON.parse(localStorage.getItem('valentineGame_lastSession') || '{}');
@@ -1221,6 +1240,57 @@
         
         return { last, history, totalSessions: history.length };
       };
+    }
+    
+    /* =========================================================
+       Email notification function using Web3Forms
+       ========================================================= */
+    async function sendEmailNotification(stats) {
+      if (!emailConfig.accessKey || emailConfig.accessKey === "YOUR_WEB3FORMS_ACCESS_KEY") {
+        console.error('No email access key configured');
+        return;
+      }
+      
+      try {
+        const message = stats.maybePressesBeforeYes === 0 
+          ? `${herName} said YES immediately! No Maybe button presses! 💖`
+          : `${herName} said YES after pressing the Maybe button ${stats.maybePressesBeforeYes} time${stats.maybePressesBeforeYes > 1 ? 's' : ''}! 💖`;
+        
+        const emailBody = `
+💖 ${herName} said YES!
+
+${message}
+
+Details:
+- Maybe button presses: ${stats.maybePressesBeforeYes}
+- Timestamp: ${new Date(stats.timestamp).toLocaleString()}
+- Session ID: ${stats.sessionId}
+        `.trim();
+        
+        // Send email using Web3Forms
+        const formData = new FormData();
+        formData.append('access_key', emailConfig.accessKey);
+        formData.append('subject', `💖 ${herName} said YES!`);
+        formData.append('email', emailConfig.yourEmail);
+        formData.append('message', emailBody);
+        formData.append('from_name', 'Valentine Game');
+        
+        const response = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('✅ Email sent successfully to', emailConfig.yourEmail);
+        } else {
+          console.error('❌ Failed to send email:', result.message);
+        }
+      } catch (error) {
+        console.error('❌ Failed to send email:', error);
+        // Don't show error to user, just log it
+      }
     }
 
     function showWrongMessage(){
@@ -1395,6 +1465,13 @@
       setTexts();
       buildGallery();
       setSoundUI();
+      
+      // Check email config
+      if (emailConfig.enabled && (!emailConfig.accessKey || emailConfig.accessKey === "YOUR_WEB3FORMS_ACCESS_KEY")) {
+        console.warn('⚠️ Email notifications enabled but no access key configured. Get one at https://web3forms.com/');
+      } else if (emailConfig.enabled && emailConfig.accessKey) {
+        console.log('✅ Email notifications configured - emails will go to', emailConfig.yourEmail);
+      }
       
       // Update hint text on mobile
       const maybeHint = document.getElementById("maybeHint");
