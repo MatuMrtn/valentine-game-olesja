@@ -516,9 +516,6 @@
 
         <div class="card sparkle-wrap">
           <canvas class="sparkle-canvas" id="sparkle"></canvas>
-          <p class="lead" style="margin:0 0 10px;">
-            Okay okay… I’ve been saving this for you 🥹
-          </p>
           <h3 style="margin:0; font-size: 22px; line-height:1.25;" id="questionText">
             Will you be my Valentine, Olesja?
           </h3>
@@ -571,7 +568,7 @@
        ========================================================= */
     const herName = "Olesja";
     const heartsToWin = 5;
-    const photos = ["photo1.jpg","photo2.jpg","photo3.jpg"]; // optional
+    const photos = ["Photo1.jpg","Photo2.JPG","Photo3.JPG"]; // optional
     // const photos = []; // uncomment to hide gallery automatically
 
     /* Optional fine-tuning */
@@ -1119,8 +1116,11 @@
       }, 2000);
     }
 
-    function explodeMaybe(){
-      if (!isMobileDevice()) return;
+    function explodeMaybe(e){
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       
       const maybe = el.btnMaybe;
       
@@ -1229,16 +1229,27 @@
       });
 
       // "Maybe" button behavior: dodge on desktop, explode on mobile
-      if (isMobileDevice()) {
+      const isMobile = isMobileDevice();
+      
+      if (isMobile) {
         // On mobile: explode and show WRONG
-        el.btnMaybe.addEventListener("click", (e) => {
-          e.preventDefault();
-          explodeMaybe();
-        });
+        // Use both touchstart and click to ensure it works on all mobile devices
+        let touchHandled = false;
+        
         el.btnMaybe.addEventListener("touchstart", (e) => {
-          e.preventDefault();
-          explodeMaybe();
+          touchHandled = true;
+          explodeMaybe(e);
+          // Prevent click from firing after touch
+          setTimeout(() => { touchHandled = false; }, 300);
         }, {passive:false});
+        
+        el.btnMaybe.addEventListener("click", (e) => {
+          if (!touchHandled) {
+            explodeMaybe(e);
+          }
+          e.preventDefault();
+          e.stopPropagation();
+        });
       } else {
         // On desktop: dodge on hover and pointer down
         el.btnMaybe.addEventListener("mouseenter", dodgeMaybe);
